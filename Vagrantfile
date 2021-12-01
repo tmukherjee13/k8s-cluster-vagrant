@@ -1,30 +1,33 @@
 servers = [
     {
-        :name => "master",
+        :name => "kmaster",
         :type => "master",
-        :box => "ubuntu/xenial64",
+        :box => "bento/ubuntu-20.04",
         # :box_version => "20180831.0.0",
         :eth1 => "192.168.56.10",
         :mem => "2048",
-        :cpu => "2"
+        :cpu => "2",
+        :size => "20GB"
     },
     {
         :name => "node-1",
         :type => "node",
-        :box => "ubuntu/xenial64",
+        :box => "bento/ubuntu-20.04",
         # :box_version => "20180831.0.0",
         :eth1 => "192.168.56.11",
-        :mem => "2048",
-        :cpu => "2"
+        :mem => "1024",
+        :cpu => "2",
+        :size => "20GB"
     },
     {
         :name => "node-2",
         :type => "node",
-        :box => "ubuntu/xenial64",
+        :box => "bento/ubuntu-20.04",
         # :box_version => "20180831.0.0",
         :eth1 => "192.168.56.12",
-        :mem => "2048",
-        :cpu => "2"
+        :mem => "1024",
+        :cpu => "2",
+        :size => "20GB"
     }
 ]
 
@@ -37,6 +40,7 @@ Vagrant.configure("2") do |config|
           config.vm.box = opts[:box]
          # config.vm.box_version = opts[:box_version]
           config.vm.hostname = opts[:name]
+          config.disksize.size = opts[:size]
           
 
           config.vm.provider "virtualbox" do |v|
