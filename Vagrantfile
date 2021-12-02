@@ -38,9 +38,7 @@ Vagrant.configure("2") do |config|
       config.vm.define opts[:name] do |config|
 
           config.vm.box = opts[:box]
-         # config.vm.box_version = opts[:box_version]
           config.vm.hostname = opts[:name]
-          config.disksize.size = opts[:size]
           
 
           config.vm.provider "virtualbox" do |v|

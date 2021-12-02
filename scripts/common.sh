@@ -23,6 +23,25 @@ echo \
   "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
+
+##  onlyfor  containerd
+# echo "[JOB] Enable and load kernel modules"
+# cat >>/etc/modules-load.d/containerd.conf <<EOF
+# overlay
+# br_netfilter
+# EOF
+# modprobe overlay
+# modprobe br_netfilter
+
+# echo "[JOB] Adding kernel settings"
+# cat >>/etc/sysctl.d/kubenetes.conf<<EOF
+# net.bridge.bridge-nf-call-ip6tables = 1
+# net.bridge.bridge-nf-call-iptables = 1
+# net.ipv4.ip_forward = 1
+# EOF
+# sysctl --system > /dev/null 2>&1
+
+
 sudo apt-get update -y
 sudo apt-get install docker-ce docker-ce-cli containerd.io -y
 
