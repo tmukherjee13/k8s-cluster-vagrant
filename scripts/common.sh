@@ -2,80 +2,65 @@
 
 # Variable Declaration
 
-KUBERNETES_VERSION="1.22"
+KUBERNETES_VERSION="1.22.0-00"
 
-# disable swap 
-sudo swapoff -a
-# keeps the swaf off during reboot
-sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+## !IMPORTANT ##
+#
+## This script is tested only in the generic/ubuntu2004 Vagrant box
+## If you use a different version of Ubuntu or a different Ubuntu Vagrant box test this again
+#
 
-sudo apt-get update -y
-sudo apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release
+echo "[TASK 1] Disable and turn off SWAP"
+sed -i '/swap/d' /etc/fstab
+swapoff -a
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "[TASK 2] Stop and Disable firewall"
+sudo systemctl disable --now ufw >/dev/null 2>&1
 
-echo \
-  "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-
-##  onlyfor  containerd
-# echo "[JOB] Enable and load kernel modules"
-# cat >>/etc/modules-load.d/containerd.conf <<EOF
-# overlay
-# br_netfilter
-# EOF
-# modprobe overlay
-# modprobe br_netfilter
-
-# echo "[JOB] Adding kernel settings"
-# cat >>/etc/sysctl.d/kubenetes.conf<<EOF
-# net.bridge.bridge-nf-call-ip6tables = 1
-# net.bridge.bridge-nf-call-iptables = 1
-# net.ipv4.ip_forward = 1
-# EOF
-# sysctl --system > /dev/null 2>&1
-
-
-sudo apt-get update -y
-sudo apt-get install docker-ce docker-ce-cli containerd.io -y
-
-# Following configurations are recomended in the kubenetes documentation for Docker runtime. Please refer https://kubernetes.io/docs/setup/production-environment/container-runtimes/#docker
-
-cat <<EOF | sudo tee /etc/docker/daemon.json
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2",
-  "insecure-registries": ["kmaster:5000"]
-}
+echo "[TASK 3] Enable and Load Kernel modules"
+cat >>/etc/modules-load.d/containerd.conf<<EOF
+overlay
+br_netfilter
 EOF
+modprobe overlay
+modprobe br_netfilter
 
-sudo systemctl enable docker
-sudo systemctl daemon-reload
-sudo systemctl restart docker
+echo "[TASK 4] Add Kernel settings"
+cat >>/etc/sysctl.d/kubernetes.conf<<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sysctl --system >/dev/null 2>&1
 
-echo "Docker Runtime Configured Successfully"
+echo "[TASK 5] Install containerd runtime"
+sudo  apt update 
+sudo  apt install -y containerd apt-transport-https >/dev/null 2>&1
+mkdir /etc/containerd
+containerd config default > /etc/containerd/config.toml
+systemctl restart containerd
+systemctl enable containerd >/dev/null 2>&1
 
-echo "192.168.56.10  kmaster"  >>  /etc/hosts
+echo "[TASK 6] Add apt repo for kubernetes"
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - >/dev/null 2>&1
+sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" >/dev/null 2>&1
 
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl
-sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-
-echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-
-sudo apt-get update -y
-
-# sudo apt-get install -y kubelet=$KUBERNETES_VERSION kubectl=$KUBERNETES_VERSION kubeadm=$KUBERNETES_VERSION
-sudo apt-get install -y kubelet kubectl kubeadm
-
+echo "[TASK 7] Install Kubernetes components (kubeadm, kubelet and kubectl)"
+sudo apt install -y kubelet=$KUBERNETES_VERSION kubectl=$KUBERNETES_VERSION kubeadm=$KUBERNETES_VERSION >/dev/null 2>&1
 sudo apt-mark hold kubelet kubeadm kubectl
+
+echo "[TASK 8] Enable ssh password authentication"
+sed -i 's/^PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+systemctl reload sshd
+
+echo "[TASK 9] Set root password"
+echo -e "kubeadmin\nkubeadmin" | passwd root >/dev/null 2>&1
+echo "export TERM=xterm" >> /etc/bash.bashrc
+
+echo "[TASK 10] Update /etc/hosts file"
+cat >>/etc/hosts<<EOF
+192.168.56.10   kmaster
+192.168.56.11   kworker1
+192.168.56.12   kworker2
+EOF
