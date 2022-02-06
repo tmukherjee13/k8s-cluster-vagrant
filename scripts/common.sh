@@ -34,8 +34,8 @@ EOF
 sysctl --system >/dev/null 2>&1
 
 echo "[TASK 5] Install containerd runtime"
-sudo  apt update 
-sudo  apt install -y containerd apt-transport-https >/dev/null 2>&1
+apt update -qq
+apt install  -qq -y containerd apt-transport-https >/dev/null 2>&1
 mkdir /etc/containerd
 containerd config default > /etc/containerd/config.toml
 systemctl restart containerd
@@ -43,10 +43,10 @@ systemctl enable containerd >/dev/null 2>&1
 
 echo "[TASK 6] Add apt repo for kubernetes"
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - >/dev/null 2>&1
-sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" >/dev/null 2>&1
+apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main" >/dev/null 2>&1
 
 echo "[TASK 7] Install Kubernetes components (kubeadm, kubelet and kubectl)"
-sudo apt install -y kubelet=$KUBERNETES_VERSION kubectl=$KUBERNETES_VERSION kubeadm=$KUBERNETES_VERSION >/dev/null 2>&1
+sudo apt install  -qq -y kubelet=$KUBERNETES_VERSION kubectl=$KUBERNETES_VERSION kubeadm=$KUBERNETES_VERSION >/dev/null 2>&1
 sudo apt-mark hold kubelet kubeadm kubectl
 
 echo "[TASK 8] Enable ssh password authentication"
